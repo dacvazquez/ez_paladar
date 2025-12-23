@@ -98,8 +98,8 @@ for i, p in enumerate(st.session_state.productos):
 
         p["precio"] = st.number_input(
             "Precio",
-            min_value=0,
-            step=1,
+            min_value=0.0,
+            step=1.0,
             value=p["precio"],
             key=f"precio_{i}"
         )
