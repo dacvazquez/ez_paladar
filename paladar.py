@@ -62,7 +62,7 @@ st.title("Calculadora de Ventas")
 # -----------------------------
 if "productos" not in st.session_state:
     st.session_state.productos = [
-        {"nombre": "Producto 1", "precio": 0, "cantidad": 0}
+        {"nombre": "Producto 1", "precio": 0.0, "cantidad": 0}
     ]
 
 # -----------------------------
@@ -99,8 +99,8 @@ for i, p in enumerate(st.session_state.productos):
         p["precio"] = st.number_input(
             "Precio",
             min_value=0.0,
-            step=1.0,
-            value=p["precio"],
+            step=0.01,
+            value=float(p["precio"]),
             key=f"precio_{i}"
         )
 
