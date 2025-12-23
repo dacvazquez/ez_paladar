@@ -3,13 +3,62 @@ import pandas as pd
 
 st.set_page_config(
     page_title="Calculadora de Ventas",
-    layout="centered"
+    layout="wide"
 )
+
+# -----------------------------
+# CSS OPTIMIZADO PARA MÓVIL
+# -----------------------------
+st.markdown("""
+<style>
+/* Texto general */
+html, body, [class*="css"]  {
+    font-size: 18px;
+}
+
+/* Inputs */
+input {
+    height: 3rem !important;
+    font-size: 1.1rem !important;
+}
+
+/* Botones */
+button {
+    height: 3.2rem !important;
+    font-size: 1.2rem !important;
+}
+
+/* Botones de cantidad */
+.qty-btn {
+    width: 100%;
+    font-size: 1.6rem !important;
+}
+
+/* Cantidad */
+.qty-display {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+/* Subtotal */
+.subtotal {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Botón eliminar */
+.delete-btn button {
+    background-color: #ff4b4b;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("Calculadora de Ventas")
 
 # -----------------------------
-# Estado inicial
+# Estado
 # -----------------------------
 if "productos" not in st.session_state:
     st.session_state.productos = [
@@ -20,114 +69,88 @@ if "productos" not in st.session_state:
 # Funciones
 # -----------------------------
 def agregar_producto():
-    n = len(st.session_state.productos) + 1
     st.session_state.productos.append(
-        {"nombre": f"Producto {n}", "precio": 0.0, "cantidad": 0}
+        {"nombre": f"Producto {len(st.session_state.productos)+1}", "precio": 0.0, "cantidad": 0}
     )
 
-def aumentar_cantidad(idx):
+def aumentar(idx):
     st.session_state.productos[idx]["cantidad"] += 1
 
-def disminuir_cantidad(idx):
+def disminuir(idx):
     if st.session_state.productos[idx]["cantidad"] > 0:
         st.session_state.productos[idx]["cantidad"] -= 1
 
-def eliminar_producto(idx):
+def eliminar(idx):
     st.session_state.productos.pop(idx)
 
 # -----------------------------
-# Renderizado
+# Render
 # -----------------------------
-total_general = 0.0
+total = 0.0
 
-for idx, producto in enumerate(st.session_state.productos):
+for i, p in enumerate(st.session_state.productos):
     with st.container(border=True):
-        col1, col2, col3, col4 = st.columns([3, 2, 3, 1])
+        p["nombre"] = st.text_input(
+            "Producto",
+            value=p["nombre"],
+            key=f"nombre_{i}"
+        )
 
-        with col1:
-            producto["nombre"] = st.text_input(
-                "Producto",
-                value=producto["nombre"],
-                key=f"nombre_{idx}"
+        p["precio"] = st.number_input(
+            "Precio",
+            min_value=0.0,
+            step=0.01,
+            value=p["precio"],
+            key=f"precio_{i}"
+        )
+
+        col_menos, col_qty, col_mas, col_del = st.columns([1, 2, 1, 1])
+
+        with col_menos:
+            st.button("➖", key=f"menos_{i}", on_click=disminuir, args=(i,), use_container_width=True)
+
+        with col_qty:
+            st.markdown(
+                f"<div class='qty-display'>{p['cantidad']}</div>",
+                unsafe_allow_html=True
             )
 
-        with col2:
-            producto["precio"] = st.number_input(
-                "Precio",
-                min_value=0.0,
-                step=0.01,
-                value=producto["precio"],
-                key=f"precio_{idx}"
-            )
+        with col_mas:
+            st.button("➕", key=f"mas_{i}", on_click=aumentar, args=(i,), use_container_width=True)
 
-        with col3:
-            st.write("Cantidad")
-            c1, c2, c3 = st.columns([1, 2, 1])
+        with col_del:
+            st.button("🗑️", key=f"del_{i}", on_click=eliminar, args=(i,), use_container_width=True)
 
-            with c1:
-                st.button(
-                    "➖",
-                    key=f"menos_{idx}",
-                    on_click=disminuir_cantidad,
-                    args=(idx,),
-                    help="Disminuir cantidad"
-                )
+        subtotal = p["precio"] * p["cantidad"]
+        total += subtotal
 
-            with c2:
-                st.markdown(
-                    f"<h3 style='text-align:center'>{producto['cantidad']}</h3>",
-                    unsafe_allow_html=True
-                )
-
-            with c3:
-                st.button(
-                    "➕",
-                    key=f"mas_{idx}",
-                    on_click=aumentar_cantidad,
-                    args=(idx,),
-                    help="Aumentar cantidad"
-                )
-
-        with col4:
-            st.write(" ")
-            st.button(
-                "🗑️",
-                key=f"eliminar_{idx}",
-                on_click=eliminar_producto,
-                args=(idx,),
-                help="Eliminar producto"
-            )
-
-        subtotal = producto["precio"] * producto["cantidad"]
-        total_general += subtotal
-
-        st.caption(f"Subtotal: ${subtotal:,.2f}")
+        st.markdown(
+            f"<div class='subtotal'>Subtotal: ${subtotal:,.2f}</div>",
+            unsafe_allow_html=True
+        )
 
 # -----------------------------
-# Acciones generales
+# Acciones finales
 # -----------------------------
 st.divider()
 
-col_a, col_b = st.columns(2)
+st.button("➕ Agregar producto", on_click=agregar_producto, use_container_width=True)
 
-with col_a:
-    st.button("➕ Agregar producto", on_click=agregar_producto)
+if st.session_state.productos:
+    df = pd.DataFrame(st.session_state.productos)
+    df["subtotal"] = df["precio"] * df["cantidad"]
 
-with col_b:
-    if st.session_state.productos:
-        df = pd.DataFrame(st.session_state.productos)
-        df["subtotal"] = df["precio"] * df["cantidad"]
-
-        st.download_button(
-            label="💾 Guardar resultados (CSV)",
-            data=df.to_csv(index=False),
-            file_name="ventas.csv",
-            mime="text/csv"
-        )
+    st.download_button(
+        "💾 Guardar ventas (CSV)",
+        data=df.to_csv(index=False),
+        file_name="ventas.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
 
 # -----------------------------
 # Total
 # -----------------------------
 st.divider()
-st.subheader("Total General")
-st.markdown(f"## ${total_general:,.2f}")
+st.subheader("Total a cobrar")
+st.markdown(f"## 💰 ${total:,.2f}")
